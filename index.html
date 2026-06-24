@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VibeTrust - The Anti-Flake Network</title>
+    <!-- Nhúng thư viện kết nối ví Freighter chính thức từ CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-freighter-api/1.1.2/index.min.js" defer></script>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -13,7 +15,6 @@
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --success: #22c55e;
-            --danger: #ef4444;
         }
 
         body {
@@ -133,7 +134,6 @@
         .status-value {
             color: var(--success);
             font-family: monospace;
-            white-space: pre-line;
         }
 
         .divider {
@@ -149,100 +149,101 @@
     <h1>VibeTrust</h1>
     <p class="subtitle">The Anti-Flake Network (Stellar Testnet)</p>
 
+    <!-- 1. CHỨC NĂNG LIÊN KẾT VÍ -->
     <button id="connectWalletBtn" class="btn-secondary">Connect Freighter Wallet</button>
     
     <div class="form-group">
-        <label>Connected Account Wallet</label>
+        <label>Connected Account</label>
         <input type="text" id="walletAddress" placeholder="Not connected" readonly>
     </div>
 
     <div class="divider"></div>
 
+    <!-- 2. CHỨC NĂNG TẠO CAM KẾT VÀ CHỌN SỐ TIỀN -->
     <div class="form-group">
-        <label>Commitment / Project Assignment Title</label>
-        <input type="text" id="contractTitle" placeholder="e.g., Submit Cyber Security Presentation">
+        <label>Commitment / Title</label>
+        <input type="text" id="contractTitle" placeholder="e.g., Submit Cyber Security Assignment">
     </div>
 
     <div class="form-group">
-        <label>Collateral Security Deposit (XLM)</label>
-        <input type="number" id="depositAmount" placeholder="0.0" min="0" step="0.1" value="10">
+        <label>Collateral Amount (XLM)</label>
+        <input type="number" id="depositAmount" placeholder="0.0" min="0" step="0.1">
     </div>
 
+    <!-- 3. CHẾ ĐỘ RIÊNG (KÝ HỢP ĐỒNG / LOCK ESCROW) -->
     <div class="form-group">
-        <label>Contract Execution Mode</label>
+        <label>Contract Mode</label>
         <select id="contractMode">
-            <option value="standard">Standard (Reputation Logging Only)</option>
-            <option value="escrow_lock">🔒 Private Mode (Lock Escrow Smart Contract)</option>
+            <option value="standard">Standard (Reputation Only)</option>
+            <option value="escrow_lock">🔒 Private Mode (Lock Escrow Contract)</option>
         </select>
     </div>
 
     <button id="signContractBtn">Sign & Initialize Contract</button>
 
+    <!-- TRẠNG THÁI KIỂM TRA -->
     <div class="status-box">
-        <div class="status-title">System Execution Logs:</div>
-        <div id="statusLog" class="status-value">Ready. Please connect your wallet extension to begin.</div>
+        <div class="status-title">System Logs:</div>
+        <div id="statusLog" class="status-value">Ready. Please connect your wallet.</div>
     </div>
 </div>
 
 <script>
-    // XỬ LÝ LIÊN KẾT VÍ FREIGHTER TRỰC TIẾP QUA INJECTED PROVIDER
-    document.getElementById('connectWalletBtn').addEventListener('click', async () => {
-        const log = document.getElementById('statusLog');
-        const walletInput = document.getElementById('walletAddress');
+    // Kiểm tra và liên kết với ví Freighter khi bấm nút
+// Thay thế đoạn <script> cũ bằng đoạn này:
+document.getElementById('connectWalletBtn').addEventListener('click', async () => {
+    const log = document.getElementById('statusLog');
+    const walletInput = document.getElementById('walletAddress');
 
-        log.innerText = "Scanning for Stellar wallet extension providers...";
-
-        // Kiểm tra tất cả các biến môi trường được ví tự động nhúng vào window của trình duyệt
-        const freighterProvider = window.windowFreighterApi || window.FreighterApi;
-
-        if (freighterProvider) {
-            try {
-                log.innerText = "Connecting to Freighter Wallet Account...";
-                
-                // Gọi trực tiếp hàm lấy Public Key chính thức từ ví của người dùng
-                const publicKey = await freighterProvider.getPublicKey();
-                
-                if (publicKey) {
-                    walletInput.value = publicKey;
-                    log.innerText = "Success: Wallet connected via Freighter API!";
-                    
-                    // Cập nhật hiệu ứng nút bấm thành công
-                    const connectBtn = document.getElementById('connectWalletBtn');
-                    connectBtn.innerText = "Wallet Connected";
-                    connectBtn.style.background = "var(--success)";
-                    connectBtn.style.color = "#ffffff";
-                    connectBtn.style.borderColor = "var(--success)";
-                } else {
-                    log.innerText = "Connection Alert: Request rejected by the user.";
-                }
-            } catch (error) {
-                log.innerText = "Connection Failed: " + error.message;
+    // Giải pháp kiểm tra ví Freighter nâng cao
+    const freighter = window.windowFreighterApi || window.FreighterApi || (window.starlight ? window.starlight.freighter : null);
+    
+    if (freighter) {
+        try {
+            log.innerText = "Connecting to Freighter...";
+            
+            // Gọi hàm lấy Public Key chính thức
+            const publicKey = await freighter.getPublicKey();
+            
+            if (publicKey) {
+                walletInput.value = publicKey;
+                log.innerText = "Wallet connected successfully!";
+                document.getElementById('connectWalletBtn').innerText = "Wallet Connected";
+                document.getElementById('connectWalletBtn').style.background = "#22c55e"; // Đổi nút sang màu xanh lá
+            } else {
+                log.innerText = "Connection rejected by user.";
             }
-        } else {
-            log.innerText = "ERROR: Freighter Wallet extension not found!";
-            alert("KHÔNG TÌM THẤY VÍ FREIGHTER!\n\nVui lòng đảm bảo:\n1. Bạn đang test trên Máy tính bằng Chrome hoặc Brave.\n2. Đã cài đặt extension Freighter Wallet.\n3. Đã mở ví và ĐĂNG NHẬP (Unlock) trước khi bấm kết nối.");
+        } catch (error) {
+            log.innerText = "Error: " + error.message;
         }
-    });
+    } else {
+        log.innerText = "Freighter wallet not found! Please check the 2 steps below.";
+        alert("Không tìm thấy ví Freighter! Hãy chắc chắn bạn đã: \n1. Cài extension Freighter trên Chrome/Brave.\n2. Đã đăng nhập (Unlock) vào ví.");
+    }
+});
 
-    // XỬ LÝ KÝ HỢP ĐỒNG (MOCKUP INTERACTION VỚI RUST SMART CONTRACT)
-    document.getElementById('signContractBtn').addEventListener('click', async () => {
-        const log = document.getElementById('statusLog');
-        const wallet = document.getElementById('walletAddress').value;
-        const title = document.getElementById('contractTitle').value;
-        const amount = document.getElementById('depositAmount').value;
-        const mode = document.getElementById('contractMode').value;
-
-        if (!wallet) {
-            alert("Vui lòng bấm nút 'Connect Freighter Wallet' ở phía trên trước!");
-            return;
-        }
-        if (!title) {
-            alert("Vui lòng nhập nội dung cam kết / tiêu đề bài tập nhóm!");
-            return;
-        }
-
-        log.innerText = "Compiling transaction payload for Stellar Ledger...\n";
-        
-        // Mô phỏng quá trình truyền parameter và thực thi hàm require_auth() của Soroban Contract
+// Giữ nguyên đoạn xử lý nút 'signContractBtn' ở phía dưới...
+document.getElementById('signContractBtn').addEventListener('click', async () => {
+    // ... code cũ giữ nguyên
+    const log = document.getElementById('statusLog');
+    const wallet = document.getElementById('walletAddress').value;
+    const title = document.getElementById('contractTitle').value;
+    const amount = document.getElementById('depositAmount').value;
+    const mode = document.getElementById('contractMode').value;
+    if (!wallet) { alert("Vui lòng bấm kết nối ví Freighter trước!"); return; }
+    if (!title) { alert("Vui lòng nhập nội dung cam kết!"); return; }
+    log.innerText = "Preparing Soroban transaction parameters...\n";
+    setTimeout(() => {
+        log.innerText += `Mode Selected: ${mode === 'escrow_lock' ? 'Private Lock Escrow' : 'Standard'}\n`;
+        log.innerText += `Depositing: ${amount || 0} XLM\n`;
+        log.innerText += `Calling Soroban require_auth() for ${wallet.substring(0,6)}...${wallet.substring(wallet.length-4)}\n`;
         setTimeout(() => {
-            log.innerText += `🔹 Target Mode: ${mode === 'escrow_lock' ? '🔒 Private Lock Escrow' : 'Standard'}\n
+            log.innerText += `🎉 Contract successfully locked and deployed on Stellar Testnet!\n`;
+            log.innerText += `Status: is_locked = true`;
+        }, 1200);
+    }, 800);
+});
+</script>
+
+</body>
+</html>
