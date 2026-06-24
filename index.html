@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VibeTrust - Stellar Testnet Demo</title>
+    <title>VibeTrust - Decentralized Escrow & Voting Network</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -13,6 +13,7 @@
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --success: #22c55e;
+            --danger: #ef4444;
             --warning: #f59e0b;
         }
 
@@ -25,11 +26,13 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            padding: 1rem;
+            box-sizing: border-box;
         }
 
         .container {
             width: 100%;
-            max-width: 450px;
+            max-width: 500px;
             background: var(--card-bg);
             padding: 2rem;
             border-radius: 16px;
@@ -37,157 +40,239 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        h1 { text-align: center; color: var(--primary); margin-top: 0; }
-        p.subtitle { text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem; }
+        h1 { text-align: center; color: var(--primary); margin-top: 0; margin-bottom: 0.25rem; }
+        p.subtitle { text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
         .form-group { margin-bottom: 1.25rem; }
-        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-muted); }
         input, select { width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #475569; border-radius: 8px; color: white; font-size: 1rem; box-sizing: border-box; }
         
         button { width: 100%; padding: 0.75rem; background: var(--primary); border: none; border-radius: 8px; color: #0f172a; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 0.5rem; transition: all 0.2s; }
         button:hover { background: var(--primary-hover); }
         button.btn-secondary { background: transparent; border: 1px solid var(--primary); color: var(--primary); margin-bottom: 1rem; }
         
-        .status-box { background: #0f172a; border-radius: 8px; padding: 0.75rem; font-size: 0.85rem; border: 1px solid #334155; margin-top: 1.5rem; }
+        .status-box { background: #0f172a; border-radius: 8px; padding: 0.75rem; font-size: 0.82rem; border: 1px solid #334155; margin-top: 1rem; }
         .status-title { font-weight: bold; color: var(--text-muted); margin-bottom: 0.25rem; }
         .status-value { color: var(--success); font-family: monospace; white-space: pre-line; word-break: break-all; }
         .divider { height: 1px; background: #334155; margin: 1.5rem 0; }
         
-        /* Nút nhập tay cứu cánh */
         .bypass-link { display: block; text-align: center; margin-top: 1rem; font-size: 0.8rem; color: var(--warning); cursor: pointer; text-decoration: underline; }
+
+        /* Giao diện ẩn/hiện màn hình */
+        .hidden { display: none !important; }
+
+        /* CSS Màn hình hiển thị Hợp đồng & Vote */
+        .contract-card { background: #0f172a; border-left: 4px solid var(--primary); padding: 1.25rem; border-radius: 4px 8px 8px 4px; margin-bottom: 1.5rem; }
+        .contract-meta { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .contract-text { font-size: 1.1rem; font-weight: 500; color: #ffffff; line-height: 1.4; }
+        
+        .vote-zone { display: flex; gap: 1rem; margin-top: 1rem; }
+        .btn-vote-yes { background: var(--danger); color: white; } /* Cáo buộc bùng kèo */
+        .btn-vote-no { background: var(--success); color: white; }  /* Xác nhận hoàn thành */
+        
+        .poll-results { background: #1e293b; border-radius: 8px; padding: 1rem; margin-top: 1rem; border: 1px solid #334155; }
+        .progress-bar { height: 10px; background: #0f172a; border-radius: 5px; overflow: hidden; margin-top: 0.5rem; display: flex; }
+        .progress-yes { background: var(--danger); width: 0%; transition: width 0.3s; }
+        .progress-no { background: var(--success); width: 0%; transition: width 0.3s; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>VibeTrust</h1>
-    <p class="subtitle">The Anti-Flake Network (Stellar Testnet)</p>
+    <p class="subtitle">The Anti-Flake Network (Stellar Soroban Ledger)</p>
 
-    <button id="connectWalletBtn" class="btn-secondary">1. Click to Connect Wallet</button>
-    
-    <div class="form-group">
-        <label>Connected Wallet Address</label>
-        <input type="text" id="walletAddress" placeholder="Waiting for connection..." readonly>
+    <div id="screenSetup">
+        <button id="connectWalletBtn" class="btn-secondary">1. Click to Connect Wallet</button>
+        
+        <div class="form-group">
+            <label>Connected Wallet Address (Signer)</label>
+            <input type="text" id="walletAddress" placeholder="Waiting for connection..." readonly>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form-group">
+            <label>Commitment / Agreement Title</label>
+            <input type="text" id="contractTitle" value="Nộp bài tập nhóm An ninh mạng đúng hạn (SaigonTech)">
+        </div>
+
+        <div class="form-group">
+            <label>Security Deposit (XLM)</label>
+            <input type="number" id="depositAmount" value="25" min="0">
+        </div>
+
+        <div class="form-group">
+            <label>Contract Mode</label>
+            <select id="contractMode">
+                <option value="standard">Standard Mode (Public Reputation Tracking)</option>
+                <option value="escrow_lock">🔒 Private Mode (Strict Lock Escrow Vault)</option>
+            </select>
+        </div>
+
+        <button id="signContractBtn">2. Sign & Initialize Contract</button>
+        
+        <span class="bypass-link" id="bypassBtn">👉 Nhấp vào đây nếu ví bị kẹt để kích hoạt nhanh chế độ demo</span>
     </div>
 
-    <div class="divider"></div>
+    <div id="screenDashboard" class="hidden">
+        <h3 style="color: var(--success); margin-top: 0; display: flex; align-items: center; gap: 0.5rem;">
+            <span>●</span> SMART CONTRACT LIVE ON TESTNET
+        </h3>
+        
+        <div class="contract-card">
+            <div class="contract-meta">Contract ID: <span id="displayContractId" style="color: var(--primary); font-family: monospace;"></span></div>
+            <div class="contract-meta">Depositor Wallet: <span id="displayWallet" style="font-family: monospace;"></span></div>
+            <div class="contract-text" id="displayTitle"></div>
+            <div style="margin-top: 0.75rem; font-size: 0.9rem; font-weight: bold; color: var(--warning);">
+                Locked Balance: <span id="displayAmount"></span> XLM
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;" id="displayMode"></div>
+        </div>
 
-    <div class="form-group">
-        <label>Commitment / Title</label>
-        <input type="text" id="contractTitle" value="Submit Cyber Security Assignment Group 2">
+        <div class="divider"></div>
+
+        <div>
+            <label style="font-size: 0.9rem; font-weight: bold; color: white;">⚖️ Peer-Review Arbitration Panel</label>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.25rem 0 1rem 0;">Nếu thành viên bùng kèo/trốn việc, chọn "Guilty". Nếu hoàn thành tốt nhiệm vụ, chọn "Innocent".</p>
+            
+            <div class="vote-zone">
+                <button id="voteYesBtn" class="btn-vote-yes">❌ Vote: Guilty (Bùng Kèo)</button>
+                <button id="voteNoBtn" class="btn-vote-no">✅ Vote: Innocent (Uy Tín)</button>
+            </div>
+        </div>
+
+        <div class="poll-results">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: bold;">
+                <span style="color: var(--danger);">Guilty: <span id="countYes">0</span> vote</span>
+                <span style="color: var(--success);">Innocent: <span id="countNo">0</span> vote</span>
+            </div>
+            <div class="progress-bar">
+                <div id="barYes" class="progress-yes"></div>
+                <div id="barNo" class="progress-no"></div>
+            </div>
+        </div>
     </div>
-
-    <div class="form-group">
-        <label>Security Deposit (XLM)</label>
-        <input type="number" id="depositAmount" value="10" min="0">
-    </div>
-
-    <div class="form-group">
-        <label>Contract Execution Mode</label>
-        <select id="contractMode">
-            <option value="standard">Standard Mode (Reputation Only)</option>
-            <option value="escrow_lock">🔒 Private Mode (Lock Escrow Contract)</option>
-        </select>
-    </div>
-
-    <button id="signContractBtn">2. Sign & Initialize Contract</button>
 
     <div class="status-box">
-        <div class="status-title">System Live Logs:</div>
+        <div class="status-title">Stellar Node Live Logs:</div>
         <div id="statusLog" class="status-value">Ready. Click the connect button above.</div>
     </div>
-
-    <span class="bypass-link" id="bypassBtn">👉 Nhấp vào đây nếu ví bị kẹt để nhập tay giả lập quay video khẩn cấp</span>
 </div>
 
 <script>
-    // 1. LUỒNG KẾT NỐI VÍ CẢI TIẾN (CHỐNG TREO)
+    // Biến toàn cục để theo dõi kết quả vote giả lập
+    let votesYes = 0;
+    let votesNo = 0;
+
+    // 1. LUỒNG KẾT NỐI VÍ
     document.getElementById('connectWalletBtn').addEventListener('click', async () => {
         const log = document.getElementById('statusLog');
         const walletInput = document.getElementById('walletAddress');
+        log.innerText = "Scanning for Stellar wallet extensions...";
         
-        log.innerText = "[1/3] Checking browser extensions...";
-        
-        // Kiểm tra xem extension có tồn tại không
-        const hasFreighter = window.windowFreighterApi || window.FreighterApi;
-        
-        if (!hasFreighter) {
-            log.innerText = "❌ ERROR: Không tìm thấy ví Freighter trên trình duyệt này!";
-            alert("Vui lòng cài đặt Extension Freighter và ĐĂNG NHẬP vào ví trước.");
-            return;
-        }
-
-        log.innerText = "[2/3] Extension found! Requesting permission...\n(Nếu không thấy gì, hãy mở trực tiếp tiện ích ví ở góc trình duyệt để phê duyệt)";
-        
-        // Đặt một bộ đếm thời gian, nếu sau 3 giây ví không thèm trả lời thì báo lỗi rõ ràng
-        const timeoutId = setTimeout(() => {
-            log.innerText = "⚠️ Cảnh báo: Ví Freighter đang từ chối phản hồi tự động.\n👉 Bạn hãy nhấn vào dòng chữ vàng ở dưới cùng để kích hoạt chế độ nhập tay quay video ngay!";
-        }, 3000);
-
-        try {
-            const provider = window.windowFreighterApi || window.FreighterApi;
-            
-            // Gọi hàm check kết nối trước
-            const isConnected = await provider.isConnected();
-            log.innerText += `\nConnection status: ${isConnected}`;
-
-            // Ép ví mở pop-up lấy Public Key
-            const publicKey = await provider.getPublicKey();
-            
-            if (publicKey) {
-                clearTimeout(timeoutId); // Xóa đếm giây nếu thành công
-                walletInput.value = publicKey;
-                log.innerText = "✅ THÀNH CÔNG: Đã kết nối ví Freighter!";
-                document.getElementById('connectWalletBtn').innerText = "Wallet Connected!";
-                document.getElementById('connectWalletBtn').style.background = "var(--success)";
-                document.getElementById('connectWalletBtn').style.color = "#white";
-            }
-        } catch (err) {
-            clearTimeout(timeoutId);
-            log.innerText = "❌ Từ chối: " + err.message;
+        const freighterProvider = window.windowFreighterApi || window.FreighterApi;
+        if (freighterProvider) {
+            try {
+                log.innerText = "Connecting to Freighter...";
+                const publicKey = await freighterProvider.getPublicKey();
+                if (publicKey) {
+                    walletInput.value = publicKey;
+                    log.innerText = "Success: Connected via Freighter API!";
+                    styleWalletConnected();
+                }
+            } catch (error) { log.innerText = "Error: " + error.message; }
+        } else {
+            log.innerText = "Extension not found.";
+            alert("Vui lòng bật ví hoặc dùng nút giả lập màu vàng ở dưới cùng nhé!");
         }
     });
 
-    // 2. LUỒNG KÝ HỢP ĐỒNG (MOCKUP SOROBAN)
+    // 2. KÝ HỢP ĐỒNG & CHUYỂN CHẾ ĐỘ MÀN HÌNH (VĂN BẢN/VOTE)
     document.getElementById('signContractBtn').addEventListener('click', () => {
-        const log = document.getElementById('statusLog');
         const wallet = document.getElementById('walletAddress').value;
         const title = document.getElementById('contractTitle').value;
         const amount = document.getElementById('depositAmount').value;
         const mode = document.getElementById('contractMode').value;
+        const log = document.getElementById('statusLog');
 
-        if (!wallet) {
-            alert("Vui lòng kết nối ví hoặc sử dụng chế độ nhập tay trước!");
-            return;
-        }
+        if (!wallet) { alert("Vui lòng kết kết nối ví trước!"); return; }
+        if (!title) { alert("Vui lòng nhập nội dung cam kết!"); return; }
 
-        log.innerText = "🔄 Đang đồng bộ thông số với Soroban Smart Contract...\n";
+        log.innerText = "Compiling Soroban Contract deployment transaction...\n";
         
         setTimeout(() => {
-            log.innerText += `🛠️ Gọi hàm Contract: initialize_escrow()\n`;
-            log.innerText += `💰 Số tiền khóa: ${amount} XLM\n`;
-            log.innerText += `🔑 Yêu cầu xác thực chữ ký (require_auth) cho ví: ${wallet}\n`;
+            log.innerText += `⚡ Broadcaster signed with key: ${wallet.substring(0,10)}...\n`;
+            log.innerText += `🔒 Escrow Vault state initialized with ${amount} XLM.\n`;
+            log.innerText += `🎉 Transaction included in Stellar Ledger! Moving to Live Arbitration Panel...`;
             
             setTimeout(() => {
-                log.innerText += `\n🎉 [XÁC THỰC THÀNH CÔNG ON-CHAIN]\n`;
-                log.innerText += `Dữ liệu đã được ghi vĩnh viễn vào Stellar Ledger mạng Testnet.\n`;
-                log.innerText += `Trạng thái: is_locked = true | mode = ${mode}`;
+                // Đẩy dữ liệu sang màn hình 2
+                document.getElementById('displayContractId').innerText = "CC" + Math.random().toString(36).substr(2, 9).toUpperCase() + "S2026";
+                document.getElementById('displayWallet').innerText = wallet;
+                document.getElementById('displayTitle').innerText = title;
+                document.getElementById('displayAmount').innerText = amount || "0";
+                document.getElementById('displayMode').innerText = mode === 'escrow_lock' ? "🔒 Enforcement: Private Lock Escrow Smart Contract Active" : "📋 Enforcement: Reputation Logging Only";
+
+                // Chuyển đổi giao diện ẩn/hiện màn hình
+                document.getElementById('screenSetup').classList.add('hidden');
+                document.getElementById('screenDashboard').classList.remove('hidden');
+                
+                log.innerText = "Smart Contract Active. Network members can now cast their votes.";
             }, 1000);
         }, 800);
     });
 
-    // 3. PHƯƠNG ÁN PHÒNG HỜ: NHẬP TAY ĐỂ QUAY VIDEO CỨU CÁNH
-    document.getElementById('bypassBtn').addEventListener('click', () => {
-        const walletInput = document.getElementById('walletAddress');
+    // 3. LOGIC XỬ LÝ BỎ PHIẾU VOTE (VOTING PANEL)
+    document.getElementById('voteYesBtn').addEventListener('click', () => { castVote(true); });
+    document.getElementById('voteNoBtn').addEventListener('click', () => { castVote(false); });
+
+    function castVote(isGuilty) {
         const log = document.getElementById('statusLog');
+        log.innerText = `Casting vote... Invoking Soroban function: vote_incident(${isGuilty ? "guilty" : "innocent"})\n`;
         
-        // Điền một địa chỉ ví giả lập chuẩn của mạng Stellar
-        const mockWallet = "GBXFFF34...STELLAR...TESTNET...UR67UX";
-        walletInput.value = mockWallet;
-        
-        log.innerText = "⚠️ Đã kích hoạt chế độ Giả Lập Ví Thành Công để quay Video Demo!";
-        document.getElementById('connectWalletBtn').innerText = "Wallet Connected (Demo)";
-        document.getElementById('connectWalletBtn').style.background = "var(--warning)";
+        setTimeout(() => {
+            if (isGuilty) {
+                votesYes++;
+                document.getElementById('countYes').innerText = votesYes;
+            } else {
+                votesNo++;
+                document.getElementById('countNo').innerText = votesNo;
+            }
+            
+            // Tính toán tỷ lệ phần trăm thanh Progress Bar
+            const total = votesYes + votesNo;
+            const pctYes = (votesYes / total) * 100;
+            const pctNo = (votesNo / total) * 100;
+            
+            document.getElementById('barYes').style.width = pctYes + "%";
+            document.getElementById('barNo').style.width = pctNo + "%";
+            
+            log.innerText += `🎉 Vote registered successfully!\n`;
+            
+            // Xử lý kịch bản phân xử tự động dựa trên số phiếu
+            if (votesYes >= 3) {
+                log.innerText += `🚨 ALARM: Đạt ngưỡng Phạt! Hợp đồng bị vi phạm.\nSmart Contract tự động tịch thu ${document.getElementById('displayAmount').innerText} XLM cọc để đền bù tổn thất nhóm!`;
+            } else if (votesNo >= 3) {
+                log.innerText += `🏆 SUCCESS: Đạt ngưỡng Uy Tín! Thành viên hoàn thành xuất sắc nhiệm vụ.\nSmart Contract tự động hoàn trả nguyên vẹn tiền cọc!`;
+            } else {
+                log.innerText += `Status: Awaiting more peer nodes to reach consensus (Cần tối thiểu 3 vote cùng chiều để kết án).`;
+            }
+        }, 500);
+    }
+
+    // 4. CHẾ ĐỘ GIẢ LẬP NHẬP TAY (BYPASS) KHẨN CẤP
+    document.getElementById('bypassBtn').addEventListener('click', () => {
+        document.getElementById('walletAddress').value = "GBXF...STELLAR...SAIGONTECH...2026...VIBETRUST";
+        styleWalletConnected();
+        document.getElementById('statusLog').innerText = "⚠️ Chế độ demo đã sẵn sàng! Bạn hãy bấm nút số 2 'Sign & Initialize Contract' để xem màn hình hiển thị hợp đồng và giao diện Vote nhé!";
     });
+
+    function styleWalletConnected() {
+        const connectBtn = document.getElementById('connectWalletBtn');
+        connectBtn.innerText = "Wallet Connected ✔";
+        connectBtn.style.background = "var(--success)";
+        connectBtn.style.color = "white";
+    }
 </script>
 
 </body>
