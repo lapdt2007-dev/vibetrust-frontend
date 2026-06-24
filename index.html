@@ -220,37 +220,59 @@
     });
 
     // Xử lý sự kiện bấm nút Ký hợp đồng (Sign & Initialize Contract)
-    document.getElementById('signContractBtn').addEventListener('click', async () => {
-        const log = document.getElementById('statusLog');
-        const wallet = document.getElementById('walletAddress').value;
-        const title = document.getElementById('contractTitle').value;
-        const amount = document.getElementById('depositAmount').value;
-        const mode = document.getElementById('contractMode').value;
+    // Thay thế đoạn <script> cũ bằng đoạn này:
+document.getElementById('connectWalletBtn').addEventListener('click', async () => {
+    const log = document.getElementById('statusLog');
+    const walletInput = document.getElementById('walletAddress');
 
-        if (!wallet) {
-            alert("Vui lòng bấm kết nối ví Freighter trước!");
-            return;
-        }
-        if (!title) {
-            alert("Vui lòng nhập nội dung cam kết!");
-            return;
-        }
-
-        log.innerText = "Preparing Soroban transaction parameters...\n";
-        
-        // Giả lập logic Client-side gửi thông tin lên Soroban Contract của Stellar
-        setTimeout(() => {
-            log.innerText += `Mode Selected: ${mode === 'escrow_lock' ? 'Private Lock Escrow' : 'Standard'}\n`;
-            log.innerText += `Depositing: ${amount || 0} XLM\n`;
-            log.innerText += `Calling Soroban require_auth() for ${wallet.substring(0,6)}...${wallet.substring(wallet.length-4)}\n`;
+    // Giải pháp kiểm tra ví Freighter nâng cao
+    const freighter = window.windowFreighterApi || window.FreighterApi || (window.starlight ? window.starlight.freighter : null);
+    
+    if (freighter) {
+        try {
+            log.innerText = "Connecting to Freighter...";
             
-            setTimeout(() => {
-                log.innerText += `🎉 Contract successfully locked and deployed on Stellar Testnet!\n`;
-                log.innerText += `Status: is_locked = true`;
-            }, 1200);
+            // Gọi hàm lấy Public Key chính thức
+            const publicKey = await freighter.getPublicKey();
+            
+            if (publicKey) {
+                walletInput.value = publicKey;
+                log.innerText = "Wallet connected successfully!";
+                document.getElementById('connectWalletBtn').innerText = "Wallet Connected";
+                document.getElementById('connectWalletBtn').style.background = "#22c55e"; // Đổi nút sang màu xanh lá
+            } else {
+                log.innerText = "Connection rejected by user.";
+            }
+        } catch (error) {
+            log.innerText = "Error: " + error.message;
+        }
+    } else {
+        log.innerText = "Freighter wallet not found! Please check the 2 steps below.";
+        alert("Không tìm thấy ví Freighter! Hãy chắc chắn bạn đã: \n1. Cài extension Freighter trên Chrome/Brave.\n2. Đã đăng nhập (Unlock) vào ví.");
+    }
+});
 
-        }, 800);
-    });
+// Giữ nguyên đoạn xử lý nút 'signContractBtn' ở phía dưới...
+document.getElementById('signContractBtn').addEventListener('click', async () => {
+    // ... code cũ giữ nguyên
+    const log = document.getElementById('statusLog');
+    const wallet = document.getElementById('walletAddress').value;
+    const title = document.getElementById('contractTitle').value;
+    const amount = document.getElementById('depositAmount').value;
+    const mode = document.getElementById('contractMode').value;
+    if (!wallet) { alert("Vui lòng bấm kết nối ví Freighter trước!"); return; }
+    if (!title) { alert("Vui lòng nhập nội dung cam kết!"); return; }
+    log.innerText = "Preparing Soroban transaction parameters...\n";
+    setTimeout(() => {
+        log.innerText += `Mode Selected: ${mode === 'escrow_lock' ? 'Private Lock Escrow' : 'Standard'}\n`;
+        log.innerText += `Depositing: ${amount || 0} XLM\n`;
+        log.innerText += `Calling Soroban require_auth() for ${wallet.substring(0,6)}...${wallet.substring(wallet.length-4)}\n`;
+        setTimeout(() => {
+            log.innerText += `🎉 Contract successfully locked and deployed on Stellar Testnet!\n`;
+            log.innerText += `Status: is_locked = true`;
+        }, 1200);
+    }, 800);
+});
 </script>
 
 </body>
