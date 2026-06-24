@@ -38,6 +38,7 @@
             border-radius: 16px;
             border: 1px solid #334155;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
         }
 
         h1 { text-align: center; color: var(--primary); margin-top: 0; margin-bottom: 0.25rem; }
@@ -56,23 +57,35 @@
         .divider { height: 1px; background: #334155; margin: 1.5rem 0; }
         
         .bypass-link { display: block; text-align: center; margin-top: 1rem; font-size: 0.8rem; color: var(--warning); cursor: pointer; text-decoration: underline; }
-
-        /* Giao diện ẩn/hiện màn hình */
         .hidden { display: none !important; }
 
-        /* CSS Màn hình hiển thị Hợp đồng & Vote */
+        /* Giao diện hiển thị Hợp đồng & Vote */
         .contract-card { background: #0f172a; border-left: 4px solid var(--primary); padding: 1.25rem; border-radius: 4px 8px 8px 4px; margin-bottom: 1.5rem; }
         .contract-meta { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; }
         .contract-text { font-size: 1.1rem; font-weight: 500; color: #ffffff; line-height: 1.4; }
         
+        /* GIAO DIỆN THANH THỜI GIAN ĐẾM NGƯỢC */
+        .timer-zone { background: #0f172a; border: 1px dashed var(--warning); border-radius: 8px; padding: 0.75rem; text-align: center; margin-bottom: 1.25rem; }
+        .timer-label { font-size: 0.8rem; color: var(--text-muted); font-weight: bold; text-transform: uppercase; }
+        .timer-clock { font-size: 1.8rem; font-weight: bold; color: var(--warning); font-family: 'Courier New', Courier, monospace; letter-spacing: 2px; margin-top: 0.25rem; }
+
         .vote-zone { display: flex; gap: 1rem; margin-top: 1rem; }
-        .btn-vote-yes { background: var(--danger); color: white; } /* Cáo buộc bùng kèo */
-        .btn-vote-no { background: var(--success); color: white; }  /* Xác nhận hoàn thành */
+        .btn-vote-yes { background: var(--danger); color: white; }
+        .btn-vote-no { background: var(--success); color: white; }
         
-        .poll-results { background: #1e293b; border-radius: 8px; padding: 1rem; margin-top: 1rem; border: 1px solid #334155; }
-        .progress-bar { height: 10px; background: #0f172a; border-radius: 5px; overflow: hidden; margin-top: 0.5rem; display: flex; }
+        .poll-results { background: #0f172a; border-radius: 8px; padding: 1rem; margin-top: 1rem; border: 1px solid #334155; }
+        .progress-bar { height: 10px; background: #1e293b; border-radius: 5px; overflow: hidden; margin-top: 0.5rem; display: flex; }
         .progress-yes { background: var(--danger); width: 0%; transition: width 0.3s; }
         .progress-no { background: var(--success); width: 0%; transition: width 0.3s; }
+
+        /* GIAO DIỆN HỘP THOẠI POPUP THÔNG BÁO CHỐT KÈO (MODAL OVERLAY) */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); display: flex; justify-content: center; align-items: center; z-index: 999; backdrop-filter: blur(4px); }
+        .modal-box { width: 90%; max-width: 400px; background: #1e293b; border-radius: 16px; border: 2px solid var(--primary); padding: 2rem; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.7); animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popUp { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-icon { font-size: 3.5rem; margin-bottom: 1rem; }
+        .modal-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 0.75rem; }
+        .modal-body { color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 1.5rem; }
+        .modal-close-btn { background: var(--primary); color: #0f172a; font-weight: bold; border: none; padding: 0.6rem 2rem; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -96,13 +109,23 @@
             <input type="text" id="contractTitle" value="Nộp bài tập nhóm An ninh mạng đúng hạn (SaigonTech)">
         </div>
 
-        <div class="form-group">
-            <label>Security Deposit (XLM)</label>
-            <input type="number" id="depositAmount" value="25" min="0">
+        <div class="form-group" style="display: flex; gap: 1rem;">
+            <div style="flex: 1;">
+                <label>Security Deposit (XLM)</label>
+                <input type="number" id="depositAmount" value="25" min="0">
+            </div>
+            <div style="flex: 1;">
+                <label>Voting Time Window</label>
+                <select id="lockDuration">
+                    <option value="15">15 Seconds (Quick Demo)</option>
+                    <option value="60">1 Minute</option>
+                    <option value="3600">1 Hour</option>
+                </select>
+            </div>
         </div>
 
         <div class="form-group">
-            <label>Contract Mode</label>
+            <label>Contract Execution Mode</label>
             <select id="contractMode">
                 <option value="standard">Standard Mode (Public Reputation Tracking)</option>
                 <option value="escrow_lock">🔒 Private Mode (Strict Lock Escrow Vault)</option>
@@ -111,14 +134,19 @@
 
         <button id="signContractBtn">2. Sign & Initialize Contract</button>
         
-        <span class="bypass-link" id="bypassBtn">👉 Nhấp vào đây nếu ví bị kẹt để kích hoạt nhanh chế độ demo</span>
+        <span class="bypass-link" id="bypassBtn">👉 Kích hoạt chế độ Demo</span>
     </div>
 
     <div id="screenDashboard" class="hidden">
-        <h3 style="color: var(--success); margin-top: 0; display: flex; align-items: center; gap: 0.5rem;">
-            <span>●</span> SMART CONTRACT LIVE ON TESTNET
+        <h3 style="color: var(--success); margin-top: 0; display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem;">
+            <span>●</span> SMART CONTRACT LIVE ON STELLAR TESTNET
         </h3>
         
+        <div class="timer-zone">
+            <div class="timer-label">⏳ Time Left Until Auto-Settlement</div>
+            <div id="countdownClock" class="timer-clock">00:15</div>
+        </div>
+
         <div class="contract-card">
             <div class="contract-meta">Contract ID: <span id="displayContractId" style="color: var(--primary); font-family: monospace;"></span></div>
             <div class="contract-meta">Depositor Wallet: <span id="displayWallet" style="font-family: monospace;"></span></div>
@@ -129,11 +157,9 @@
             <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;" id="displayMode"></div>
         </div>
 
-        <div class="divider"></div>
-
-        <div>
+        <div id="votingControlZone">
             <label style="font-size: 0.9rem; font-weight: bold; color: white;">⚖️ Peer-Review Arbitration Panel</label>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.25rem 0 1rem 0;">Nếu thành viên bùng kèo/trốn việc, chọn "Guilty". Nếu hoàn thành tốt nhiệm vụ, chọn "Innocent".</p>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.25rem 0 1rem 0;">Bấm nút dưới đây để bỏ phiếu đồng thuận phân xử trạng thái lời hứa.</p>
             
             <div class="vote-zone">
                 <button id="voteYesBtn" class="btn-vote-yes">❌ Vote: Guilty (Bùng Kèo)</button>
@@ -159,12 +185,23 @@
     </div>
 </div>
 
+<div id="resultModal" class="modal-overlay hidden">
+    <div class="modal-box">
+        <div id="modalIcon" class="modal-icon">🏆</div>
+        <div id="modalTitle" class="modal-title">Kết Quả Phân Xử</div>
+        <div id="modalBody" class="modal-body">Nội dung thông báo chi tiết của Smart Contract...</div>
+        <button class="modal-close-btn" onclick="closeModal()">Đóng & Thống Kê</button>
+    </div>
+</div>
+
 <script>
-    // Biến toàn cục để theo dõi kết quả vote giả lập
     let votesYes = 0;
     let votesNo = 0;
+    let timerInterval = null;
+    let timeLeft = 0;
+    let contractLockedAmount = 0;
 
-    // 1. LUỒNG KẾT NỐI VÍ
+    // 1. KẾT NỐI VÍ
     document.getElementById('connectWalletBtn').addEventListener('click', async () => {
         const log = document.getElementById('statusLog');
         const walletInput = document.getElementById('walletAddress');
@@ -173,7 +210,6 @@
         const freighterProvider = window.windowFreighterApi || window.FreighterApi;
         if (freighterProvider) {
             try {
-                log.innerText = "Connecting to Freighter...";
                 const publicKey = await freighterProvider.getPublicKey();
                 if (publicKey) {
                     walletInput.value = publicKey;
@@ -182,89 +218,134 @@
                 }
             } catch (error) { log.innerText = "Error: " + error.message; }
         } else {
-            log.innerText = "Extension not found.";
             alert("Vui lòng bật ví hoặc dùng nút giả lập màu vàng ở dưới cùng nhé!");
         }
     });
 
-    // 2. KÝ HỢP ĐỒNG & CHUYỂN CHẾ ĐỘ MÀN HÌNH (VĂN BẢN/VOTE)
+    // 2. KÝ HỢP ĐỒNG & BẮT ĐẦU ĐẾM NGƯỢC THỜI GIAN
     document.getElementById('signContractBtn').addEventListener('click', () => {
         const wallet = document.getElementById('walletAddress').value;
         const title = document.getElementById('contractTitle').value;
         const amount = document.getElementById('depositAmount').value;
         const mode = document.getElementById('contractMode').value;
+        const duration = parseInt(document.getElementById('lockDuration').value);
         const log = document.getElementById('statusLog');
 
         if (!wallet) { alert("Vui lòng kết kết nối ví trước!"); return; }
         if (!title) { alert("Vui lòng nhập nội dung cam kết!"); return; }
 
-        log.innerText = "Compiling Soroban Contract deployment transaction...\n";
+        contractLockedAmount = amount || 0;
+        log.innerText = "Compiling Soroban Contract parameters and starting block ledger countdown...\n";
         
         setTimeout(() => {
-            log.innerText += `⚡ Broadcaster signed with key: ${wallet.substring(0,10)}...\n`;
-            log.innerText += `🔒 Escrow Vault state initialized with ${amount} XLM.\n`;
-            log.innerText += `🎉 Transaction included in Stellar Ledger! Moving to Live Arbitration Panel...`;
-            
-            setTimeout(() => {
-                // Đẩy dữ liệu sang màn hình 2
-                document.getElementById('displayContractId').innerText = "CC" + Math.random().toString(36).substr(2, 9).toUpperCase() + "S2026";
-                document.getElementById('displayWallet').innerText = wallet;
-                document.getElementById('displayTitle').innerText = title;
-                document.getElementById('displayAmount').innerText = amount || "0";
-                document.getElementById('displayMode').innerText = mode === 'escrow_lock' ? "🔒 Enforcement: Private Lock Escrow Smart Contract Active" : "📋 Enforcement: Reputation Logging Only";
+            // Đẩy dữ liệu sang màn hình hiển thị
+            document.getElementById('displayContractId').innerText = "CC" + Math.random().toString(36).substr(2, 9).toUpperCase() + "S2026";
+            document.getElementById('displayWallet').innerText = wallet;
+            document.getElementById('displayTitle').innerText = title;
+            document.getElementById('displayAmount').innerText = contractLockedAmount;
+            document.getElementById('displayMode').innerText = mode === 'escrow_lock' ? "🔒 Enforcement: Private Lock Escrow Smart Contract Active" : "📋 Enforcement: Reputation Logging Only";
 
-                // Chuyển đổi giao diện ẩn/hiện màn hình
-                document.getElementById('screenSetup').classList.add('hidden');
-                document.getElementById('screenDashboard').classList.remove('hidden');
-                
-                log.innerText = "Smart Contract Active. Network members can now cast their votes.";
-            }, 1000);
+            // Chuyển đổi giao diện màn hình
+            document.getElementById('screenSetup').classList.add('hidden');
+            document.getElementById('screenDashboard').classList.remove('hidden');
+            
+            log.innerText = "Smart Contract Active. Countdown and polling started.";
+            
+            // Khởi chạy bộ đếm thời gian
+            startCountdown(duration);
         }, 800);
     });
 
-    // 3. LOGIC XỬ LÝ BỎ PHIẾU VOTE (VOTING PANEL)
+    // HÀM ĐẾM NGƯỢC THỜI GIAN REAL-TIME
+    function startCountdown(seconds) {
+        timeLeft = seconds;
+        updateClockDisplay();
+
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateClockDisplay();
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                autoSettleContract(); // TỰ ĐỘNG CHỐT KHI HẾT GIỜ
+            }
+        }, 1000);
+    }
+
+    function updateClockDisplay() {
+        const mins = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+        const secs = (timeLeft % 60).toString().padStart(2, '0');
+        document.getElementById('countdownClock').innerText = `${mins}:${secs}`;
+    }
+
+    // 3. LUỒNG BỎ PHIẾU VOTE
     document.getElementById('voteYesBtn').addEventListener('click', () => { castVote(true); });
     document.getElementById('voteNoBtn').addEventListener('click', () => { castVote(false); });
 
     function castVote(isGuilty) {
-        const log = document.getElementById('statusLog');
-        log.innerText = `Casting vote... Invoking Soroban function: vote_incident(${isGuilty ? "guilty" : "innocent"})\n`;
+        if (isGuilty) { votesYes++; document.getElementById('countYes').innerText = votesYes; } 
+        else { votesNo++; document.getElementById('countNo').innerText = votesNo; }
         
-        setTimeout(() => {
-            if (isGuilty) {
-                votesYes++;
-                document.getElementById('countYes').innerText = votesYes;
-            } else {
-                votesNo++;
-                document.getElementById('countNo').innerText = votesNo;
-            }
-            
-            // Tính toán tỷ lệ phần trăm thanh Progress Bar
-            const total = votesYes + votesNo;
-            const pctYes = (votesYes / total) * 100;
-            const pctNo = (votesNo / total) * 100;
-            
-            document.getElementById('barYes').style.width = pctYes + "%";
-            document.getElementById('barNo').style.width = pctNo + "%";
-            
-            log.innerText += `🎉 Vote registered successfully!\n`;
-            
-            // Xử lý kịch bản phân xử tự động dựa trên số phiếu
-            if (votesYes >= 3) {
-                log.innerText += `🚨 ALARM: Đạt ngưỡng Phạt! Hợp đồng bị vi phạm.\nSmart Contract tự động tịch thu ${document.getElementById('displayAmount').innerText} XLM cọc để đền bù tổn thất nhóm!`;
-            } else if (votesNo >= 3) {
-                log.innerText += `🏆 SUCCESS: Đạt ngưỡng Uy Tín! Thành viên hoàn thành xuất sắc nhiệm vụ.\nSmart Contract tự động hoàn trả nguyên vẹn tiền cọc!`;
-            } else {
-                log.innerText += `Status: Awaiting more peer nodes to reach consensus (Cần tối thiểu 3 vote cùng chiều để kết án).`;
-            }
-        }, 500);
+        const total = votesYes + votesNo;
+        document.getElementById('barYes').style.width = ((votesYes / total) * 100) + "%";
+        document.getElementById('barNo').style.width = ((votesNo / total) * 100) + "%";
+
+        document.getElementById('statusLog').innerText = `Vote recorded on-chain. Current state - Guilty: ${votesYes} | Innocent: ${votesNo}`;
     }
 
-    // 4. CHẾ ĐỘ GIẢ LẬP NHẬP TAY (BYPASS) KHẨN CẤP
+    // 4. HÀM TỰ ĐỘNG CHỐT HỢP ĐỒNG (AUTO-SETTLEMENT) & BẬT POPUP THÔNG BÁO XỊN
+    function autoSettleContract() {
+        // Khóa không cho người dùng bấm vote tiếp
+        document.getElementById('votingControlZone').classList.add('hidden');
+        document.getElementById('countdownClock').style.color = "var(--danger)";
+        document.getElementById('countdownClock').innerText = "CLOSED";
+
+        const log = document.getElementById('statusLog');
+        log.innerText = "⏳ TIME OUT! Soroban Smart Contract triggered auto_settle()...\n";
+
+        const modal = document.getElementById('resultModal');
+        const mIcon = document.getElementById('modalIcon');
+        const mTitle = document.getElementById('modalTitle');
+        const mBody = document.getElementById('modalBody');
+
+        // Logic tự động phân xử dựa trên kết quả bỏ phiếu
+        if (votesYes === 0 && votesNo === 0) {
+            // Không ai thèm bầu
+            mIcon.innerText = "💤";
+            mTitle.innerText = "Hợp Đồng Bị Hủy";
+            mBody.innerHTML = `Không có thành viên nào tham gia bỏ phiếu phân xử trước khi hết giờ.<br><br>Số tiền <b>${contractLockedAmount} XLM</b> đã được hoàn trả an toàn về ví người cọc.`;
+            log.innerText += "Decision: No votes cast. Escrow collateral refunded.";
+        } 
+        else if (votesYes > votesNo) {
+            // Phe Có Tội thắng (Bùng kèo)
+            mIcon.innerText = "🚨";
+            mTitle.style.color = "var(--danger)";
+            mTitle.innerText = "Hợp Đồng Bị Phạt!";
+            mBody.innerHTML = `Số phiếu bầu <b>Guilty (Bùng kèo)</b> chiếm đa số (${votesYes} vs ${votesNo}).<br><br>Hệ thống tự động kết luận thành viên đã vi phạm cam kết nhóm.<br><br>💸 Số tiền phạt <b>${contractLockedAmount} XLM</b> đã bị tịch thu vĩnh viễn khỏi ví cọc để phân chia cho những người còn lại!`;
+            log.innerText += `Decision: Contract Violated. Escrow penalized. Tịch thu ${contractLockedAmount} XLM.`;
+        } 
+        else {
+            // Phe Uy Tín thắng (Hoàn thành tốt)
+            mIcon.innerText = "🏆";
+            mTitle.style.color = "var(--success)";
+            mTitle.innerText = "Hợp Đồng Thành Công!";
+            mBody.innerHTML = `Chúc mừng! Số phiếu bầu <b>Innocent (Uy tín)</b> chiếm ưu thế (${votesNo} vs ${votesYes}).<br><br>Hệ thống xác nhận thành viên đã nộp bài tập / giữ đúng lời hứa.<br><br>🔐 Toàn bộ số tiền cọc <b>${contractLockedAmount} XLM</b> đã được Smart Contract mở khóa và chuyển trả về ví chính chủ!`;
+            log.innerText += "Decision: Commitment fulfilled. Collateral successfully released to the owner.";
+        }
+
+        // Hiện Popup thông báo lên
+        modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('resultModal').classList.add('hidden');
+    }
+
+    // 5. CHẾ ĐỘ GIẢ LẬP NHẬP TAY (BYPASS)
     document.getElementById('bypassBtn').addEventListener('click', () => {
         document.getElementById('walletAddress').value = "GBXF...STELLAR...SAIGONTECH...2026...VIBETRUST";
         styleWalletConnected();
-        document.getElementById('statusLog').innerText = "⚠️ Chế độ demo đã sẵn sàng! Bạn hãy bấm nút số 2 'Sign & Initialize Contract' để xem màn hình hiển thị hợp đồng và giao diện Vote nhé!";
+        document.getElementById('statusLog').innerText = "⚠️ Chế độ demo đã sẵn sàng! Bạn hãy bấm nút số 2 'Sign & Initialize Contract' để xem đồng hồ chạy ngược và popup thông báo nhé!";
     });
 
     function styleWalletConnected() {
